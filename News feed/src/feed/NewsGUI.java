@@ -1,5 +1,6 @@
 package feed;
 
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -8,15 +9,25 @@ import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
 
+
+
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
@@ -50,6 +61,9 @@ public class NewsGUI extends Application{
 	public void start(Stage primaryStage) throws Exception {
 		//Defining Elements
 		primaryStage.setTitle("News Feed");
+		Menu fileMenu = new Menu("File");
+		MenuItem updateMenuItem = new MenuItem("Update(f5)");
+		MenuBar menu = new MenuBar();
 		Text storiesLabel = new Text("Current Stories");
 		Text storyInformation = new Text("Story Information");
 		Text storyInfoText = new Text();
@@ -69,11 +83,36 @@ public class NewsGUI extends Application{
 		stories.onMouseClickedProperty();
 		stories.setMinWidth(700);
 		storyInfoText.setWrappingWidth(500);
+		//Menu set up
+		fileMenu.getItems().add(updateMenuItem);
+		menu.getMenus().add(fileMenu);
 		//Events
 		removeWebsite.addEventFilter(MouseEvent.MOUSE_CLICKED, removeWebsite(websiteSelection, names));
 		stories.addEventFilter(MouseEvent.MOUSE_CLICKED, getStoryInformation(stories, storyInfoText));
 		openPage.addEventFilter(MouseEvent.MOUSE_CLICKED, openPageEvent(stories));
+		filterText.setOnKeyPressed(filterBy(filterText, websiteSelection, names));
 		filterButton.addEventFilter(MouseEvent.MOUSE_CLICKED, filterBy(filterText, websiteSelection, names));
+		//Updates feeds.
+		updateMenuItem.setOnAction(new EventHandler<ActionEvent>() {
+
+			@Override
+			public void handle(ActionEvent arg0) {
+				updateWithProgressBar(names);
+			}
+			
+		});
+		//Removes the text from filterText when its clicked on the first time
+		filterText.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
+
+			@Override
+			public void handle(MouseEvent arg0) {
+				if(filterText.getText().equals("Keyword or Phrase filter")) {
+					filterText.setText("");
+				}
+			}
+			
+		});
+		//Handles the adding of a new webpage and the pop up for that
 		newWebpage.addEventFilter(MouseEvent.MOUSE_CLICKED, new EventHandler<MouseEvent>() {
 
 			@Override
@@ -90,6 +129,9 @@ public class NewsGUI extends Application{
 					public void handle(MouseEvent event) {
 						try {
 							RssFeed webFeed = r.readSite(url.getText(), siteName.getText());
+							if(webFeed == null) {
+								return;
+							}
 							for(Message m: webFeed.getMessages()) {
 								names.add(webFeed.getNewsWebsite() + ": " + m.getTitle());
 							}
@@ -105,8 +147,8 @@ public class NewsGUI extends Application{
 	            	
 	            });
 				GridPane newPageGrid = new GridPane();
-				newPageGrid.add(new Text("url"), 0, 0);
-				newPageGrid.add(new Text("webpage name"), 0, 1);
+				newPageGrid.add(new Text("RSS url"), 0, 1);
+				newPageGrid.add(new Text("webpage name"), 0, 0);
 				newPageGrid.add(url, 1, 0);
 				newPageGrid.add(siteName, 1, 1);
 				newPageGrid.add(accept, 1, 2);
@@ -125,6 +167,10 @@ public class NewsGUI extends Application{
 		GridPane infoGrid = new GridPane();
 		//Grid for the top buttons
 		GridPane buttonGrid = new GridPane();
+		//Grid for the menu
+		GridPane menuGrid = new GridPane();
+		//Arrangment for Menu grid
+		menuGrid.add(menu, 0, 0);
 		//Arrangement for ButtonGrid
 		buttonGrid.add(openPage, 0, 0);
 		buttonGrid.add(newWebpage, 1, 0);
@@ -139,11 +185,13 @@ public class NewsGUI extends Application{
 		infoGrid.add(storyInformation, 0, 2);
 		infoGrid.add(storyInfoText, 0, 3);
 		//Arrangement for main grid
-		grid.add(storiesLabel, 0, 0);
-		grid.add(stories, 0, 1);
-		grid.add(infoGrid, 1, 1);
+		grid.add(menuGrid, 0, 0);
+		grid.add(storiesLabel, 0, 1);
+		grid.add(stories, 0, 2);
+		grid.add(infoGrid, 1, 2);
 		//Scene and state setting
 		Scene scene = new Scene(grid);
+		scene.setOnKeyPressed(updateItems(names));
 	    primaryStage.setScene(scene);
 	    primaryStage.show(); 
 	}
@@ -178,6 +226,7 @@ public class NewsGUI extends Application{
 	 * The Choice box that will be filled with the websites registered in feed
 	 */
 	private void fillWebsiteChoiceBox(ChoiceBox<String> c) {
+		c.getItems().clear();
 		c.getItems().add("All");
 		for(RssFeed f: feeds) {
 			c.getItems().add(f.getNewsWebsite());
@@ -263,11 +312,16 @@ public class NewsGUI extends Application{
 	 * @return
 	 * Returns an MouseEvent EventHandler that with the given inputs filter feed
 	 */
-	private EventHandler<MouseEvent> filterBy(TextField filterText, ChoiceBox<String> choice, ObservableList<String> names){
-		return new EventHandler<MouseEvent>() {
+	private EventHandler<Event> filterBy(TextField filterText, ChoiceBox<String> choice, ObservableList<String> names){
+		return new EventHandler<Event>() {
 
 			@Override
-			public void handle(MouseEvent arg0) {
+			public void handle(Event arg0) {
+				if(arg0.getClass().equals(KeyEvent.class)) {
+					if(((KeyEvent)arg0).getCode() != KeyCode.ENTER) {
+						return;
+					}
+				}
 				//TextFilter is not being used
 				if(filterText.getText().equals("") || filterText.getText().equals("Keyword or Phrase filter")) {
 					//Website selection filter is being used
@@ -379,6 +433,61 @@ public class NewsGUI extends Application{
 		}
 		return selectedSite.replaceAll("[^a-zA-Z0-9 ]", ""); //removes all special characters
 	}
+	
+	/**
+	 * Event that updates feeds when f5 is pressed
+	 * @param names
+	 * The Observablelist of news articles
+	 * @return
+	 * An Event EventHandler
+	 */
+	private EventHandler<Event> updateItems(ObservableList<String> names){
+		return new EventHandler<Event>() {
+
+			@Override
+			public void handle(Event arg0) {
+				if(arg0.getClass().equals(KeyEvent.class)) {
+					if(((KeyEvent)arg0).getCode() != KeyCode.F5) {
+						return;
+					}
+				}
+				updateWithProgressBar(names);
+			}
+			
+		};
+		
+	}
+	
+	/**
+	 * Updates feed with the most recent information
+	 * Creates a popup that displays a progress bar
+	 * @param names
+	 * The observable list of article names that is being shown
+	 */
+	private void updateWithProgressBar(ObservableList<String> names) {
+		int i = 0;
+		Stage pop = new Stage();
+		Text updateText = new Text("Update");
+		ProgressBar pb = new ProgressBar(); 
+		GridPane grid = new GridPane();
+		pb.setMinSize(150, 30);
+		grid.add(updateText, 0, 0);
+		grid.add(pb, 0, 1);
+		Scene scene = new Scene(grid);
+		pop.setTitle("Update");
+		pop.setScene(scene);
+		pop.show();
+		for(RssFeed f: feeds) {
+			try {
+				f = r.readSite(f.getUrl(), f.getNewsWebsite());
+			} catch (XMLStreamException e) {
+				e.printStackTrace();
+			}
+			pb.setProgress(feeds.size()/++i);
+			System.out.println(i + "\n");
+		}
+	}
+	
 	
 	/**
 	 * The Main that launches the GUI

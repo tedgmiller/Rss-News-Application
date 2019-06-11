@@ -12,3 +12,10 @@ Update 6/9/2019
 -Can open the selected article in the users default browser
 -Saves the registered Websites in an XML file.
 -Opens by default to the GUI version, but has a console application version.
+Update 6/10/2019
+-Added a feature where if a user hasn't used the filter textfield before the text auto clears
+-Added a menuBar
+-Added a feature to the filter textfield where pressing enter works to start the filtering as well
+-Added an update feature which will refresh the feeds to show the current articles on the websites
+--There is an update button under file in the menu bar pressing f5 also works
+--Added a pop up to show how far along the update is.

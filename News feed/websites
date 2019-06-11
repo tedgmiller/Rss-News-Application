@@ -1,19 +1,15 @@
 <?xml version="1.0"?>
 <rss>
 	<item>
-		<url>http://feeds.bbci.co.uk/news/rss.xml?edition=uk</url>
-		<website>BBC</website>
-	</item>
-	<item>
 		<url>http://rss.cnn.com/rss/cnn_topstories.rss</url>
 		<website>CNN</website>
 	</item>
 	<item>
-		<url>http://feeds.reuters.com/reuters/topNews</url>
-		<website>reuters</website>
+		<url>https://www.cnbc.com/id/100003114/device/rss/rss.html</url>
+		<website>CNBC</website>
 	</item>
 	<item>
 		<url>https://feeds.a.dj.com/rss/RSSWorldNews.xml</url>
-		<website>wsj top</website>
+		<website>WSJ</website>
 	</item>
 </rss>
